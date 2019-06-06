@@ -22,6 +22,7 @@ abstract class RepositoryWriter<RD : RepositoryDefinition<out Annotation, out En
 
         return TypeSpec.classBuilder(definition.generatedClassName)
             .addSuperinterface(definition.baseClassName)
+            .addModifiers(Modifier.PUBLIC)
             .setup()
             .build()
     }

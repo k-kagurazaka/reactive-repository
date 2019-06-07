@@ -62,7 +62,11 @@ object PrefsEntityStatementBuilder {
             }
             .build()
 
-    fun buildStoreStatement(parameterName: String, accessorType: PrefsEntityDefinition.AccessorType): CodeBlock =
+    fun buildStoreStatement(
+        parameterName: String,
+        accessorType: PrefsEntityDefinition.AccessorType,
+        commitOnSave: Boolean
+    ): CodeBlock =
         CodeBlock.builder()
             .addStatement(
                 CodeBlock.builder()
@@ -89,13 +93,18 @@ object PrefsEntityStatementBuilder {
                                 invoke
                             )
                         }
+
+                        if (commitOnSave) {
+                            add("\n.commit()")
+                        } else {
+                            add("\n.apply()")
+                        }
                     }
-                    .add("\n.apply()")
                     .build()
             )
             .build()
 
-    fun buildClearStatement(accessorType: PrefsEntityDefinition.AccessorType): CodeBlock =
+    fun buildClearStatement(accessorType: PrefsEntityDefinition.AccessorType, commitOnSave: Boolean): CodeBlock =
         CodeBlock.builder()
             .addStatement(
                 CodeBlock.builder()
@@ -114,8 +123,13 @@ object PrefsEntityStatementBuilder {
                         }.forEach { key ->
                             add("\n.remove(\$S)", key)
                         }
+
+                        if (commitOnSave) {
+                            add("\n.commit()")
+                        } else {
+                            add("\n.apply()")
+                        }
                     }
-                    .add("\n.apply()")
                     .build()
             )
             .build()

@@ -12,4 +12,6 @@ public @interface PrefsEntity {
     String preferencesName() default "";
 
     boolean useDefaultPreferences() default false;
+
+    boolean commitOnSave() default false;
 }

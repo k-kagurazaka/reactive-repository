@@ -17,6 +17,8 @@ class PrefsEntityDefinition(
 
     val accessorType: AccessorType
 
+    val commitOnSave: Boolean
+
     override val annotationHandle: AnnotationHandle<PrefsEntity>
 
     init {
@@ -103,6 +105,8 @@ class PrefsEntityDefinition(
                 element
             )
         }
+
+        commitOnSave = annotationHandle.getOrDefault("commitOnSave")
     }
 
     sealed class PreferencesType {

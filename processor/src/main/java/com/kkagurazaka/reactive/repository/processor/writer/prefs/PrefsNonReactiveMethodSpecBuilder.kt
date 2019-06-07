@@ -89,7 +89,12 @@ object PrefsNonReactiveMethodSpecBuilder {
         hasRx2Processor: Boolean
     ): MethodSpec.Builder =
         beginControlFlow("if (\$L == null)", parameterName)
-            .addCode(PrefsEntityStatementBuilder.buildClearStatement(entityDefinition.accessorType))
+            .addCode(
+                PrefsEntityStatementBuilder.buildClearStatement(
+                    entityDefinition.accessorType,
+                    entityDefinition.commitOnSave
+                )
+            )
             .apply {
                 if (hasRx2Processor) {
                     addStatement("serialized.onNext(new \$T())", entityDefinition.className)
@@ -102,7 +107,13 @@ object PrefsNonReactiveMethodSpecBuilder {
         entityDefinition: PrefsEntityDefinition,
         parameterName: String
     ): MethodSpec.Builder =
-        addCode(PrefsEntityStatementBuilder.buildStoreStatement(parameterName, entityDefinition.accessorType))
+        addCode(
+            PrefsEntityStatementBuilder.buildStoreStatement(
+                parameterName,
+                entityDefinition.accessorType,
+                entityDefinition.commitOnSave
+            )
+        )
 
     private fun MethodSpec.Builder.addProcessorInitializeCode(): MethodSpec.Builder =
         addStatement("initProcessor()")

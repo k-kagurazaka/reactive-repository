@@ -4,8 +4,10 @@ import com.kkagurazaka.reactive.repository.processor.definition.memory.InMemoryE
 import com.kkagurazaka.reactive.repository.processor.definition.memory.InMemoryRepositoryDefinition
 import com.kkagurazaka.reactive.repository.processor.definition.prefs.PrefsEntityDefinition
 import com.kkagurazaka.reactive.repository.processor.definition.prefs.PrefsRepositoryDefinition
+import com.kkagurazaka.reactive.repository.processor.definition.prefs.TypeAdapterDefinition
 import com.kkagurazaka.reactive.repository.processor.exception.ProcessingException
 import com.squareup.javapoet.ClassName
+import com.squareup.javapoet.TypeName
 import java.io.PrintWriter
 import java.io.StringWriter
 import javax.annotation.processing.ProcessingEnvironment
@@ -15,6 +17,8 @@ import javax.tools.Diagnostic
 
 class ProcessingContext(private val processingEnv: ProcessingEnvironment) {
 
+    val typeAdapterDefinitions: Map<TypeName, TypeAdapterDefinition>
+        get() = mutableTypeAdapterDefinitions
     val inMemoryEntityDefinitions: Map<ClassName, InMemoryEntityDefinition>
         get() = mutableInMemoryEntityDefinitions
     val prefsEntityDefinitions: Map<ClassName, PrefsEntityDefinition>
@@ -24,6 +28,7 @@ class ProcessingContext(private val processingEnv: ProcessingEnvironment) {
     val prefsRepositoryDefinitions: List<PrefsRepositoryDefinition>
         get() = mutablePrefsRepositoryDefinitions
 
+    private val mutableTypeAdapterDefinitions = mutableMapOf<TypeName, TypeAdapterDefinition>()
     private val mutableInMemoryEntityDefinitions = mutableMapOf<ClassName, InMemoryEntityDefinition>()
     private val mutablePrefsEntityDefinitions = mutableMapOf<ClassName, PrefsEntityDefinition>()
     private val mutableInMemoryRepositoryDefinitions = mutableListOf<InMemoryRepositoryDefinition>()
@@ -31,6 +36,10 @@ class ProcessingContext(private val processingEnv: ProcessingEnvironment) {
     private val errors = mutableListOf<ProcessingException>()
 
     val elements: Elements get() = processingEnv.elementUtils
+
+    fun add(definition: TypeAdapterDefinition) {
+        mutableTypeAdapterDefinitions[definition.className] = definition
+    }
 
     fun add(definition: InMemoryEntityDefinition) {
         mutableInMemoryEntityDefinitions[definition.className] = definition

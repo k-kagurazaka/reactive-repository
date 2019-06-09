@@ -3,6 +3,7 @@ package com.kkagurazaka.reactive.repository.processor.writer.prefs
 import com.kkagurazaka.reactive.repository.processor.definition.prefs.GetterDefinition
 import com.kkagurazaka.reactive.repository.processor.definition.prefs.KeyDefinition
 import com.kkagurazaka.reactive.repository.processor.definition.prefs.PrefsEntityDefinition
+import com.kkagurazaka.reactive.repository.processor.definition.prefs.TypeAdapterDefinition
 import com.squareup.javapoet.CodeBlock
 
 object PrefsEntityStatementBuilder {
@@ -14,13 +15,26 @@ object PrefsEntityStatementBuilder {
                     is PrefsEntityDefinition.AccessorType.Fields -> {
                         addStatement("\$T value = new \$T()", entityDefinition.className, entityDefinition.className)
                         accessorType.fields.forEach { def ->
-                            addStatement(
-                                "value.\$L = preferences.\$L(\$S, defaultValue.\$L)",
-                                def.name,
-                                def.type.toGetMethod(),
-                                def.key,
-                                def.name
-                            )
+                            val adapterMethod = def.type.typeAdapterMethod
+
+                            val getDefaultCode = CodeBlock.builder()
+                                .add("defaultValue.\$L", def.name)
+                                .build()
+                                .wrapByToPrefs(adapterMethod)
+
+                            val getCode = CodeBlock.builder()
+                                .add("preferences.\$L(\$S, ", def.type.prefsType.toGetMethod(), def.key)
+                                .add(getDefaultCode)
+                                .add(")")
+                                .build()
+                                .wrapByToType(adapterMethod)
+
+                            val setCode = CodeBlock.builder()
+                                .add("value.\$L = ", def.name)
+                                .add(getCode)
+                                .build()
+
+                            addStatement(setCode)
                         }
                         addStatement("return value")
                     }
@@ -30,14 +44,27 @@ object PrefsEntityStatementBuilder {
                                 .apply {
                                     add("return new \$T(", entityDefinition.className).indent()
                                     accessorType.getters.forEachIndexed { i, def ->
-                                        val comma = if (i == accessorType.getters.lastIndex) "" else ","
-                                        add(
-                                            "\npreferences.\$L(\$S, defaultValue.\$L())\$L",
-                                            def.type.toGetMethod(),
-                                            def.key,
-                                            def.name,
-                                            comma
-                                        )
+                                        val adapterMethod = def.type.typeAdapterMethod
+
+                                        add("\n")
+
+                                        val getDefaultCode = CodeBlock.builder()
+                                            .add("defaultValue.\$L()", def.name)
+                                            .build()
+                                            .wrapByToPrefs(adapterMethod)
+
+                                        val getCode = CodeBlock.builder()
+                                            .add("preferences.\$L(\$S, ", def.type.prefsType.toGetMethod(), def.key)
+                                            .add(getDefaultCode)
+                                            .add(")")
+                                            .build()
+                                            .wrapByToType(adapterMethod)
+
+                                        add(getCode)
+
+                                        if (i != accessorType.getters.lastIndex) {
+                                            add(",")
+                                        }
                                     }
                                     unindent().add("\n)")
                                         .build()
@@ -48,13 +75,27 @@ object PrefsEntityStatementBuilder {
                     is PrefsEntityDefinition.AccessorType.GettersAndSetters -> {
                         addStatement("\$T value = new \$T()", entityDefinition.className, entityDefinition.className)
                         accessorType.getters.zip(accessorType.setters).forEach { (getterDef, setterDef) ->
-                            addStatement(
-                                "\nvalue.\$L(preferences.\$L(\$S, defaultValue.\$L))",
-                                setterDef.name,
-                                getterDef.type.toGetMethod(),
-                                getterDef.key,
-                                getterDef.name
-                            )
+                            val adapterMethod = getterDef.type.typeAdapterMethod
+
+                            val getDefaultCode = CodeBlock.builder()
+                                .add("defaultValue.\$L()", getterDef.name)
+                                .build()
+                                .wrapByToPrefs(adapterMethod)
+
+                            val getCode = CodeBlock.builder()
+                                .add("preferences.\$L(\$S, ", getterDef.type.prefsType.toGetMethod(), getterDef.key)
+                                .add(getDefaultCode)
+                                .add(")")
+                                .build()
+                                .wrapByToType(adapterMethod)
+
+                            val setCode = CodeBlock.builder()
+                                .add("value.\$L(", setterDef.name)
+                                .add(getCode)
+                                .add(")")
+                                .build()
+
+                            addStatement(setCode)
                         }
                         addStatement("return value")
                     }
@@ -83,15 +124,28 @@ object PrefsEntityStatementBuilder {
                                 accessorType.getters
                             }
                         }.forEach { def ->
-                            val invoke = if (def is GetterDefinition) "()" else ""
-                            add(
-                                "\n.\$L(\$S, \$L.\$L\$L)",
-                                def.type.toPutMethod(),
-                                def.key,
-                                parameterName,
-                                def.name,
-                                invoke
-                            )
+                            val adapterMethod = def.type.typeAdapterMethod
+
+                            val getCode = CodeBlock.builder()
+                                .add(
+                                    "\$L.\$L\$L",
+                                    parameterName,
+                                    def.name,
+                                    if (def is GetterDefinition) "()" else ""
+                                )
+                                .build()
+                                .wrapByToPrefs(adapterMethod)
+
+                            val setCode = CodeBlock.builder()
+                                .add(
+                                    "\n.\$L(\$S, ",
+                                    def.type.prefsType.toPutMethod(),
+                                    def.key
+                                )
+                                .add(getCode)
+                                .add(")")
+                                .build()
+                            add(setCode)
                         }
 
                         if (commitOnSave) {
@@ -134,23 +188,45 @@ object PrefsEntityStatementBuilder {
             )
             .build()
 
-    private fun KeyDefinition.Type.toGetMethod(): String =
-        when (this) {
-            KeyDefinition.Type.BOOLEAN -> "getBoolean"
-            KeyDefinition.Type.STRING -> "getString"
-            KeyDefinition.Type.INT -> "getInt"
-            KeyDefinition.Type.FLOAT -> "getFloat"
-            KeyDefinition.Type.LONG -> "getLong"
-            KeyDefinition.Type.STRING_SET -> "getStringSet"
+    private fun CodeBlock.wrapByToType(adapterMethod: TypeAdapterDefinition.AdapterMethodPair?): CodeBlock =
+        if (adapterMethod != null) {
+            CodeBlock.builder()
+                .add("\$T.\$L(", adapterMethod.className, adapterMethod.toTypeMethod.simpleName.toString())
+                .add(this)
+                .add(")")
+                .build()
+        } else {
+            this
         }
 
-    private fun KeyDefinition.Type.toPutMethod(): String =
+    private fun CodeBlock.wrapByToPrefs(adapterMethod: TypeAdapterDefinition.AdapterMethodPair?): CodeBlock =
+        if (adapterMethod != null) {
+            CodeBlock.builder()
+                .add("\$T.\$L(", adapterMethod.className, adapterMethod.toPrefsMethod.simpleName.toString())
+                .add(this)
+                .add(")")
+                .build()
+        } else {
+            this
+        }
+
+    private fun KeyDefinition.PrefsType.toGetMethod(): String =
         when (this) {
-            KeyDefinition.Type.BOOLEAN -> "putBoolean"
-            KeyDefinition.Type.STRING -> "putString"
-            KeyDefinition.Type.INT -> "putInt"
-            KeyDefinition.Type.FLOAT -> "putFloat"
-            KeyDefinition.Type.LONG -> "putLong"
-            KeyDefinition.Type.STRING_SET -> "putStringSet"
+            KeyDefinition.PrefsType.BOOLEAN -> "getBoolean"
+            KeyDefinition.PrefsType.STRING -> "getString"
+            KeyDefinition.PrefsType.INT -> "getInt"
+            KeyDefinition.PrefsType.FLOAT -> "getFloat"
+            KeyDefinition.PrefsType.LONG -> "getLong"
+            KeyDefinition.PrefsType.STRING_SET -> "getStringSet"
+        }
+
+    private fun KeyDefinition.PrefsType.toPutMethod(): String =
+        when (this) {
+            KeyDefinition.PrefsType.BOOLEAN -> "putBoolean"
+            KeyDefinition.PrefsType.STRING -> "putString"
+            KeyDefinition.PrefsType.INT -> "putInt"
+            KeyDefinition.PrefsType.FLOAT -> "putFloat"
+            KeyDefinition.PrefsType.LONG -> "putLong"
+            KeyDefinition.PrefsType.STRING_SET -> "putStringSet"
         }
 }

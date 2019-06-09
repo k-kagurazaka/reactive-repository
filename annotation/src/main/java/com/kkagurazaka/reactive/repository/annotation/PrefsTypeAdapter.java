@@ -7,16 +7,5 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.CLASS)
-public @interface PrefsEntity {
-
-    String preferencesName() default "";
-
-    boolean useDefaultPreferences() default false;
-
-    boolean commitOnSave() default false;
-
-    Class<?> typeAdapter() default DEFAULT_ADAPTER.class;
-
-    final class DEFAULT_ADAPTER {
-    }
+public @interface PrefsTypeAdapter {
 }

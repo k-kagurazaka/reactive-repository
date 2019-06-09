@@ -1,5 +1,6 @@
 package com.kkagurazaka.reactive.repository.processor.tools
 
+import com.kkagurazaka.reactive.repository.annotation.PrefsEntity
 import com.kkagurazaka.reactive.repository.annotation.PrefsKey
 import com.squareup.javapoet.ClassName
 import com.squareup.javapoet.ParameterizedTypeName
@@ -26,4 +27,5 @@ object Types {
     val rx2FlowableProcessor: ClassName = ClassName.get("io.reactivex.processors", "FlowableProcessor")
 
     val prefsKey: ClassName = ClassName.get(PrefsKey::class.java)
+    val defaultTypeAdapter: ClassName = ClassName.get(PrefsEntity.DEFAULT_ADAPTER::class.java)
 }

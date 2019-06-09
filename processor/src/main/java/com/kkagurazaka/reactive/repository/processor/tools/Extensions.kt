@@ -3,6 +3,7 @@ package com.kkagurazaka.reactive.repository.processor.tools
 import com.google.common.base.CaseFormat
 import com.kkagurazaka.reactive.repository.processor.definition.prefs.GetterDefinition
 import com.squareup.javapoet.ClassName
+import com.squareup.javapoet.TypeName
 import javax.lang.model.element.*
 import javax.lang.model.type.TypeKind
 
@@ -40,6 +41,11 @@ val Element.isPublicNonFinalField: Boolean
     get() = kind == ElementKind.FIELD &&
             modifiers.contains(Modifier.PUBLIC) &&
             !modifiers.contains(Modifier.FINAL)
+
+val Element.isPublicStaticMethod: Boolean
+    get() = kind == ElementKind.METHOD &&
+            modifiers.contains(Modifier.PUBLIC) &&
+            modifiers.contains(Modifier.STATIC)
 
 val Element.isGetter: Boolean
     get() {
@@ -90,3 +96,11 @@ fun <T : Any> TypeElement.mapIfMethod(block: (method: ExecutableElement) -> T): 
         .map { it as ExecutableElement }
         .map(block)
         .toList()
+
+val TypeName.isSupportedByPrefs: Boolean
+    get() = this == TypeName.BOOLEAN ||
+            this == Types.string ||
+            this == TypeName.INT ||
+            this == TypeName.FLOAT ||
+            this == TypeName.LONG ||
+            this == Types.stringSet

@@ -1,14 +1,12 @@
 package com.kkagurazaka.reactive.repository.processor
 
 import com.google.auto.service.AutoService
-import com.kkagurazaka.reactive.repository.annotation.InMemoryEntity
-import com.kkagurazaka.reactive.repository.annotation.InMemoryRepository
-import com.kkagurazaka.reactive.repository.annotation.PrefsEntity
-import com.kkagurazaka.reactive.repository.annotation.PrefsRepository
+import com.kkagurazaka.reactive.repository.annotation.*
 import com.kkagurazaka.reactive.repository.processor.definition.memory.InMemoryEntityDefinition
 import com.kkagurazaka.reactive.repository.processor.definition.memory.InMemoryRepositoryDefinition
 import com.kkagurazaka.reactive.repository.processor.definition.prefs.PrefsEntityDefinition
 import com.kkagurazaka.reactive.repository.processor.definition.prefs.PrefsRepositoryDefinition
+import com.kkagurazaka.reactive.repository.processor.definition.prefs.TypeAdapterDefinition
 import com.kkagurazaka.reactive.repository.processor.exception.ProcessingException
 import com.kkagurazaka.reactive.repository.processor.writer.memory.InMemoryRepositoryWriter
 import com.kkagurazaka.reactive.repository.processor.writer.prefs.PrefsRepositoryWriter
@@ -65,6 +63,11 @@ class ReactiveRepositoryProcessor : AbstractProcessor() {
             }
 
             // Prefs
+            roundEnv.getElementsAnnotatedWith(PrefsTypeAdapter::class.java)
+                .asSequence()
+                .map { element -> TypeAdapterDefinition(context, element as TypeElement) }
+                .forEach(context::add)
+
             roundEnv.getElementsAnnotatedWith(PrefsEntity::class.java)
                 .asSequence()
                 .map { element -> PrefsEntityDefinition(context, element as TypeElement) }

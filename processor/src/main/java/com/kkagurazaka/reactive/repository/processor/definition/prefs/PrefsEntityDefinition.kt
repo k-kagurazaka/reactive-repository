@@ -5,8 +5,10 @@ import com.kkagurazaka.reactive.repository.processor.ProcessingContext
 import com.kkagurazaka.reactive.repository.processor.definition.EntityDefinition
 import com.kkagurazaka.reactive.repository.processor.exception.ProcessingException
 import com.kkagurazaka.reactive.repository.processor.tools.*
+import com.squareup.javapoet.TypeName
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
+import javax.lang.model.type.TypeMirror
 
 class PrefsEntityDefinition(
     private val context: ProcessingContext,
@@ -49,6 +51,14 @@ class PrefsEntityDefinition(
             PreferencesType.Named(preferencesName ?: snakeName)
         }
 
+        commitOnSave = annotationHandle.getOrDefault("commitOnSave")
+
+        val typeAdapter = annotationHandle.get<TypeMirror>("typeAdapter")
+            ?.let { TypeName.get(it) }
+            ?.takeUnless { it == Types.defaultTypeAdapter }
+            ?.let { context.typeAdapterDefinitions[it] }
+
+        // accessor
         val fields = mutableListOf<FieldDefinition>()
         val getters = mutableListOf<GetterDefinition>()
         val setters = mutableListOf<SetterDefinition>()
@@ -59,13 +69,13 @@ class PrefsEntityDefinition(
             .forEach {
                 when {
                     it.isPublicNonFinalField -> {
-                        fields.add(FieldDefinition(context, it))
+                        fields.add(FieldDefinition(context, it, typeAdapter))
                     }
                     it.isGetter -> {
-                        getters.add(GetterDefinition(context, it))
+                        getters.add(GetterDefinition(context, it, typeAdapter))
                     }
                     it.isSetter -> {
-                        setters.add(SetterDefinition(context, it))
+                        setters.add(SetterDefinition(context, it, typeAdapter))
                     }
                 }
             }
@@ -105,8 +115,6 @@ class PrefsEntityDefinition(
                 element
             )
         }
-
-        commitOnSave = annotationHandle.getOrDefault("commitOnSave")
     }
 
     sealed class PreferencesType {

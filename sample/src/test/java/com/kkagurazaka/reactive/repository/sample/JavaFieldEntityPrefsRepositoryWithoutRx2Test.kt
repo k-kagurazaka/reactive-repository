@@ -34,6 +34,7 @@ class JavaFieldEntityPrefsRepositoryWithoutRx2Test {
             assertThat(pie).isEqualTo(3.1415f)
             assertThat(amount).isEqualTo(123456789L)
             assertThat(strList).isEmpty()
+            assertThat(someClassList).isEqualTo(listOf(SomeClass("initial")))
         }
     }
 
@@ -46,6 +47,7 @@ class JavaFieldEntityPrefsRepositoryWithoutRx2Test {
             .putFloat("pie", 3f)
             .putLong("amount", 12L)
             .putStringSet("str_list", setOf("1", "2", "3"))
+            .putString("some_class_list", "0,1,2")
             .apply()
 
         val result = repository.get()
@@ -57,6 +59,7 @@ class JavaFieldEntityPrefsRepositoryWithoutRx2Test {
             assertThat(pie).isEqualTo(3f)
             assertThat(amount).isEqualTo(12L)
             assertThat(strList).isEqualTo(setOf("1", "2", "3"))
+            assertThat(someClassList).isEqualTo(List(3) { SomeClass("$it") })
         }
     }
 
@@ -69,6 +72,7 @@ class JavaFieldEntityPrefsRepositoryWithoutRx2Test {
             pie = 3f
             amount = 12L
             strList = setOf("1", "2", "3")
+            someClassList = List(3) { SomeClass("$it") }
         }
 
         repository.store(newEntity)
@@ -79,6 +83,7 @@ class JavaFieldEntityPrefsRepositoryWithoutRx2Test {
         assertThat(preferences.getFloat("pie", 0f)).isEqualTo(3f)
         assertThat(preferences.getLong("amount", 0L)).isEqualTo(12L)
         assertThat(preferences.getStringSet("str_list", null)).isEqualTo(setOf("1", "2", "3"))
+        assertThat(preferences.getString("some_class_list", null)).isEqualTo("0,1,2")
     }
 
     @Test
@@ -90,6 +95,7 @@ class JavaFieldEntityPrefsRepositoryWithoutRx2Test {
             .putFloat("pie", 3f)
             .putLong("amount", 12L)
             .putStringSet("str_list", setOf("1", "2", "3"))
+            .putString("some_class_list", "0,1,2")
             .apply()
 
         repository.store(null)
@@ -100,5 +106,6 @@ class JavaFieldEntityPrefsRepositoryWithoutRx2Test {
         assertThat(preferences.contains("pie")).isFalse()
         assertThat(preferences.contains("amount")).isFalse()
         assertThat(preferences.contains("str_list")).isFalse()
+        assertThat(preferences.contains("some_class_list")).isFalse()
     }
 }

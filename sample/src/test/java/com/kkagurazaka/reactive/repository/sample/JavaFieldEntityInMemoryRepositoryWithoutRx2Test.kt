@@ -25,6 +25,7 @@ class JavaFieldEntityInMemoryRepositoryWithoutRx2Test {
             assertThat(pie).isEqualTo(3.1415f)
             assertThat(amount).isEqualTo(123456789L)
             assertThat(strList).isEmpty()
+            assertThat(someClassList).isEqualTo(listOf(SomeClass("initial")))
         }
     }
 
@@ -37,6 +38,7 @@ class JavaFieldEntityInMemoryRepositoryWithoutRx2Test {
             pie = 3f
             amount = 12L
             strList = setOf("1", "2", "3")
+            someClassList = List(3) { SomeClass("$it") }
         }
 
         repository.store(newEntity)
@@ -51,6 +53,7 @@ class JavaFieldEntityInMemoryRepositoryWithoutRx2Test {
             assertThat(pie).isEqualTo(3f)
             assertThat(amount).isEqualTo(12L)
             assertThat(strList).isEqualTo(setOf("1", "2", "3"))
+            assertThat(someClassList).isEqualTo(List(3) { SomeClass("$it") })
         }
     }
 }

@@ -4,11 +4,10 @@ import com.kkagurazaka.reactive.repository.annotation.InMemoryEntity;
 import com.kkagurazaka.reactive.repository.annotation.PrefsEntity;
 import com.kkagurazaka.reactive.repository.annotation.PrefsKey;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 @InMemoryEntity
-@PrefsEntity
+@PrefsEntity(typeAdapter = SomeClassListTypeAdapter.class)
 public class JavaFieldEntity {
 
     @PrefsKey
@@ -28,4 +27,7 @@ public class JavaFieldEntity {
 
     @PrefsKey
     public Set<String> strList = new HashSet<>();
+
+    @PrefsKey
+    public List<SomeClass> someClassList = new ArrayList<>(Collections.singletonList(new SomeClass("initial")));
 }

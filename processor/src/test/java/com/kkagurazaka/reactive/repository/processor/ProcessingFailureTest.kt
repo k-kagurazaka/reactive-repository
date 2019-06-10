@@ -173,13 +173,13 @@ class ProcessingFailureTest {
     }
 
     @Test
-    fun `not supported type by SharedPreferences`() {
+    fun `no PrefsTypeAdapter found`() {
         assertProcessingFailure(
             sources = listOf(
                 "PrefsUnsupportedTypeEntity.java",
                 "PrefsUnsupportedTypeEntityRepository.java"
             ),
-            errorContaining = "double is not supported by SharedPreferences"
+            errorContaining = "PrefsTypeAdapter for double does not found"
         )
     }
 

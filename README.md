@@ -1,6 +1,7 @@
 # Reactive Repository
 
 [![](https://jitpack.io/v/k-kagurazaka/reactive-repository.svg)](https://jitpack.io/#k-kagurazaka/reactive-repository)
+[![CircleCI](https://circleci.com/gh/k-kagurazaka/reactive-repository.svg?style=svg)](https://circleci.com/gh/k-kagurazaka/reactive-repository)
 
 Repository code generator with Reactive Programming for Android
 

@@ -78,6 +78,9 @@ class ReactiveRepositoryProcessor : AbstractProcessor() {
                 .map { element -> PrefsRepositoryDefinition(context, element as TypeElement) }
                 .forEach(context::add)
 
+            // verify
+            verifyPrefsKey(context)
+
             context.prefsRepositoryDefinitions.forEach { definition ->
                 PrefsRepositoryWriter(context, definition)
                     .buildJavaFile()
@@ -94,6 +97,33 @@ class ReactiveRepositoryProcessor : AbstractProcessor() {
         context.note("processing complete")
 
         return false
+    }
+
+    private fun verifyPrefsKey(context: ProcessingContext) {
+        data class PrefsKey(val prefsName: String?, val key: String)
+
+        val prefsKeys = mutableMapOf<PrefsKey, Unit>()
+        context.prefsEntityDefinitions.values.forEach { definition ->
+            val prefsName = when (val type = definition.preferencesType) {
+                is PrefsEntityDefinition.PreferencesType.Default -> null
+                is PrefsEntityDefinition.PreferencesType.Named -> type.name
+            }
+            when (val accessorType = definition.accessorType) {
+                is PrefsEntityDefinition.AccessorType.Fields -> accessorType.fields.map { it.key }
+                is PrefsEntityDefinition.AccessorType.GettersAndSetterConstructor -> accessorType.getters.map { it.key }
+                is PrefsEntityDefinition.AccessorType.GettersAndSetters -> accessorType.getters.map { it.key }
+            }.forEach { key ->
+                val prefsKey = PrefsKey(prefsName, key)
+                if (prefsKeys.containsKey(prefsKey)) {
+                    throw ProcessingException(
+                        "Conflict SharedPreferences key: ${prefsName ?: "DefaultSharedPreferences"}.$key",
+                        element = null
+                    )
+                } else {
+                    prefsKeys[prefsKey] = Unit
+                }
+            }
+        }
     }
 
     private fun JavaFile.writeToFiler(element: Element) {

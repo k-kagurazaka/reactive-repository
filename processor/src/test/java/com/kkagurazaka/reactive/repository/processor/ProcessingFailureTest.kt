@@ -223,6 +223,28 @@ class ProcessingFailureTest {
         )
     }
 
+    @Test
+    fun `conflict key of named SharedPreferences`() {
+        assertProcessingFailure(
+            sources = listOf(
+                "PrefsFieldEntity.java",
+                "PrefsConflictKeyEntity.java"
+            ),
+            errorContaining = "Conflict SharedPreferences key: prefs_field_entity.name"
+        )
+    }
+
+    @Test
+    fun `conflict key of default SharedPreferences`() {
+        assertProcessingFailure(
+            sources = listOf(
+                "PrefsDefaultEntity.java",
+                "PrefsDefaultConflictKeyEntity.java"
+            ),
+            errorContaining = "Conflict SharedPreferences key: DefaultSharedPreferences.name"
+        )
+    }
+
     private fun assertProcessingFailure(sources: List<String>, errorContaining: String) {
         assert_().about(JavaSourcesSubjectFactory.javaSources())
             .that(sources.map { JavaFileObjects.forResource(it) })

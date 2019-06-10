@@ -1,0 +1,33 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/code
+    docker:
+      - image: circleci/android:api-28
+    environment:
+      TERM: dumb
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx1024m -Dorg.gradle.daemon=false"
+    steps:
+      - checkout
+      - restore_cache:
+          key: jars-{{ checksum "build.gradle" }}-{{ checksum "annotation/build.gradle" }}-{{ checksum "processor/build.gradle" }}-{{ checksum "sample/build.gradle" }}
+      - run:
+          name: Download Dependencies
+          command: ./gradlew androidDependencies
+      - save_cache:
+          paths:
+            - ~/.gradle
+          key: jars-{{ checksum "build.gradle" }}-{{ checksum "annotation/build.gradle" }}-{{ checksum "processor/build.gradle" }}-{{ checksum "sample/build.gradle" }}
+      - run:
+          name: Run Tests 1
+          command: ./gradlew lint sample:assembleDebug
+      - run:
+          name: Run Tests 2
+          command: ./gradlew processor:test
+      - run:
+          name: Run Tests 3
+          command: ./gradlew sample:testDebugUnitTest
+      - store_test_results:
+          paths:
+            - processor/build/test-results
+            - sample/build/test-results

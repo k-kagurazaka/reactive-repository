@@ -13,3 +13,11 @@ object SomeClassListTypeAdapter {
     @JvmStatic
     fun convert(value: String): List<SomeClass> = value.split(",").map { SomeClass(it) }
 }
+
+@PrefsTypeAdapter
+class SomeClassListInstanceRequiredTypeAdapter {
+
+    fun convert(value: List<SomeClass>): String = SomeClassListTypeAdapter.convert(value)
+
+    fun convert(value: String): List<SomeClass> = SomeClassListTypeAdapter.convert(value)
+}

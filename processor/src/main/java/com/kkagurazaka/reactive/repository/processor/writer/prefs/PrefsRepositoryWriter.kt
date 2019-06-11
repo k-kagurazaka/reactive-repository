@@ -25,14 +25,21 @@ class PrefsRepositoryWriter(context: ProcessingContext, definition: PrefsReposit
 
         val preferences = FieldSpec.builder(Types.sharedPreferences, "preferences", Modifier.PRIVATE, Modifier.FINAL)
             .build()
+        addField(preferences)
 
         val defaultValue = FieldSpec.builder(entityClassName, "defaultValue", Modifier.PRIVATE, Modifier.FINAL)
             .initializer("new \$T()", entityClassName)
             .build()
-
-        addField(preferences)
         addField(defaultValue)
-        addMethod(buildConstructorMethodSpec(preferences, entityDefinition.preferencesType))
+
+        entityDefinition.typeAdapter?.takeIf { it.isInstanceRequired }?.let {
+            val typeAdapter = FieldSpec.builder(it.className, "typeAdapter", Modifier.PRIVATE, Modifier.FINAL)
+                .build()
+            addField(typeAdapter)
+        }
+
+        addMethod(buildConstructorMethodSpec(entityDefinition))
+
         addMethods(definition.methodDefinitions.mapNotNull {
             PrefsNonReactiveMethodSpecBuilder.build(it, hasRx2Methods)
         })
@@ -63,32 +70,36 @@ class PrefsRepositoryWriter(context: ProcessingContext, definition: PrefsReposit
         }
     }
 
-    private fun buildConstructorMethodSpec(
-        preferences: FieldSpec,
-        preferencesType: PrefsEntityDefinition.PreferencesType
-    ): MethodSpec =
+    private fun buildConstructorMethodSpec(entityDefinition: PrefsEntityDefinition): MethodSpec =
         MethodSpec.constructorBuilder()
             .addModifiers(Modifier.PUBLIC)
             .addParameter(Types.androidContext, "context")
+            .apply {
+                entityDefinition.typeAdapter?.takeIf { it.isInstanceRequired }?.let {
+                    addParameter(it.className, "typeAdapter")
+                }
+            }
             .addCode(
                 CodeBlock.builder()
                     .apply {
-                        when (preferencesType) {
+                        when (val preferencesType = entityDefinition.preferencesType) {
                             is PrefsEntityDefinition.PreferencesType.Default -> {
                                 addStatement(
-                                    "\$N = \$T.getDefaultSharedPreferences(context.getApplicationContext())",
-                                    preferences,
+                                    "this.preferences = \$T.getDefaultSharedPreferences(context.getApplicationContext())",
                                     Types.preferenceManager
                                 )
                             }
                             is PrefsEntityDefinition.PreferencesType.Named -> {
                                 addStatement(
-                                    "\$N = context.getApplicationContext().getSharedPreferences(\$S, \$T.MODE_PRIVATE)",
-                                    preferences,
+                                    "this.preferences = context.getApplicationContext().getSharedPreferences(\$S, \$T.MODE_PRIVATE)",
                                     preferencesType.name,
                                     Types.androidContext
                                 )
                             }
+                        }
+
+                        entityDefinition.typeAdapter?.takeIf { it.isInstanceRequired }?.let {
+                            addStatement("this.typeAdapter = typeAdapter")
                         }
                     }
                     .build()

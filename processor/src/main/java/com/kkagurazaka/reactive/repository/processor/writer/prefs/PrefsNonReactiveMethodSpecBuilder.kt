@@ -111,7 +111,8 @@ object PrefsNonReactiveMethodSpecBuilder {
             PrefsEntityStatementBuilder.buildStoreStatement(
                 parameterName,
                 entityDefinition.accessorType,
-                entityDefinition.commitOnSave
+                entityDefinition.commitOnSave,
+                entityDefinition.typeAdapter?.isInstanceRequired ?: false
             )
         )
 

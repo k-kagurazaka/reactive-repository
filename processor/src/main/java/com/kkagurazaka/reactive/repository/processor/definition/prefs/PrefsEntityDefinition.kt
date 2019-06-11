@@ -21,6 +21,8 @@ class PrefsEntityDefinition(
 
     val commitOnSave: Boolean
 
+    val typeAdapter: TypeAdapterDefinition?
+
     override val annotationHandle: AnnotationHandle<PrefsEntity>
 
     init {
@@ -53,7 +55,7 @@ class PrefsEntityDefinition(
 
         commitOnSave = annotationHandle.getOrDefault("commitOnSave")
 
-        val typeAdapter = annotationHandle.get<TypeMirror>("typeAdapter")
+        typeAdapter = annotationHandle.get<TypeMirror>("typeAdapter")
             ?.let { TypeName.get(it) }
             ?.takeUnless { it == Types.defaultTypeAdapter }
             ?.let { context.typeAdapterDefinitions[it] }

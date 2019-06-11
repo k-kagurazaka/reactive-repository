@@ -42,10 +42,9 @@ val Element.isPublicNonFinalField: Boolean
             modifiers.contains(Modifier.PUBLIC) &&
             !modifiers.contains(Modifier.FINAL)
 
-val Element.isPublicStaticMethod: Boolean
+val Element.isPublicMethod: Boolean
     get() = kind == ElementKind.METHOD &&
-            modifiers.contains(Modifier.PUBLIC) &&
-            modifiers.contains(Modifier.STATIC)
+            modifiers.contains(Modifier.PUBLIC)
 
 val Element.isGetter: Boolean
     get() {

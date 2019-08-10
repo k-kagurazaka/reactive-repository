@@ -18,22 +18,40 @@ import javax.lang.model.element.Modifier
 class PrefsRepositoryWriter(context: ProcessingContext, definition: PrefsRepositoryDefinition) :
     RepositoryWriter<PrefsRepositoryDefinition>(context, definition) {
 
+    private companion object {
+        val PRIVATE_FINAL = arrayOf(Modifier.PRIVATE, Modifier.FINAL)
+    }
+
     override fun TypeSpec.Builder.setup(): TypeSpec.Builder {
         val entityDefinition = definition.entityDefinition
         val entityClassName = entityDefinition.className
         val hasRx2Methods = definition.hasRx2Methods
 
-        val preferences = FieldSpec.builder(Types.sharedPreferences, "preferences", Modifier.PRIVATE, Modifier.FINAL)
+        // private final Context context;
+        val applicationContext = FieldSpec
+            .builder(Types.androidContext, "context", *PRIVATE_FINAL)
+            .build()
+        addField(applicationContext)
+
+        // private final AtomicReference<SharedPreferences> preferences = new AtomicReference<>();
+        val atomicPreferencesClassName = Types.atomicReference(Types.sharedPreferences)
+        val preferences = FieldSpec
+            .builder(atomicPreferencesClassName, "preferences", *PRIVATE_FINAL)
+            .initializer("new \$T()", atomicPreferencesClassName)
             .build()
         addField(preferences)
 
-        val defaultValue = FieldSpec.builder(entityClassName, "defaultValue", Modifier.PRIVATE, Modifier.FINAL)
+        // private final EntityClass defaultValue = new EntityClass();
+        val defaultValue = FieldSpec
+            .builder(entityClassName, "defaultValue", *PRIVATE_FINAL)
             .initializer("new \$T()", entityClassName)
             .build()
         addField(defaultValue)
 
-        entityDefinition.typeAdapter?.takeIf { it.isInstanceRequired }?.let {
-            val typeAdapter = FieldSpec.builder(it.className, "typeAdapter", Modifier.PRIVATE, Modifier.FINAL)
+        // private final TypeAdapter typeAdapter;
+        entityDefinition.typeAdapter?.takeIf { it.isInstanceRequired }?.let { def ->
+            val typeAdapter = FieldSpec
+                .builder(def.className, "typeAdapter", *PRIVATE_FINAL)
                 .build()
             addField(typeAdapter)
         }
@@ -49,14 +67,24 @@ class PrefsRepositoryWriter(context: ProcessingContext, definition: PrefsReposit
         }
 
         if (hasRx2Methods) {
-            val prepareStatement = CodeBlock.builder().addStatement("initProcessor()").build()
+            val processorPrepareStatement = CodeBlock.builder()
+                .addStatement("initProcessor()")
+                .build()
             addFields(Rx2FieldSpecsBuilder.build(entityDefinition))
-            addMethods(definition.methodDefinitions.mapNotNull { Rx2MethodSpecBuilder.build(it, prepareStatement) })
+            addMethods(definition.methodDefinitions.mapNotNull {
+                Rx2MethodSpecBuilder.build(it, processorPrepareStatement)
+            })
             addMethod(buildRx2ProcessorInitializeMethodSpec(getterDefinition))
         }
         if (getterDefinition == null) {
-            addMethod(PrefsNonReactiveMethodSpecBuilder.buildPrivateGetter("get", entityDefinition))
+            val method = PrefsNonReactiveMethodSpecBuilder.buildPrivateGetter(
+                "get",
+                entityDefinition
+            )
+            addMethod(method)
         }
+
+        addMethod(buildGetPreferencesMethodSpec(entityDefinition))
 
         return this
     }
@@ -81,27 +109,46 @@ class PrefsRepositoryWriter(context: ProcessingContext, definition: PrefsReposit
             }
             .addCode(
                 CodeBlock.builder()
+                    .addStatement("this.context = context.getApplicationContext()")
+                    .apply {
+                        entityDefinition.typeAdapter?.takeIf { it.isInstanceRequired }?.let {
+                            addStatement("this.typeAdapter = typeAdapter")
+                        }
+                    }
+                    .build()
+            )
+            .build()
+
+    private fun buildGetPreferencesMethodSpec(entityDefinition: PrefsEntityDefinition): MethodSpec =
+        MethodSpec.methodBuilder("getPreferences")
+            .addModifiers(Modifier.PRIVATE)
+            .returns(Types.sharedPreferences)
+            .addCode(
+                CodeBlock.builder()
+                    .addStatement("\$T result = preferences.get()", Types.sharedPreferences)
+                    .beginControlFlow("if (result == null)")
                     .apply {
                         when (val preferencesType = entityDefinition.preferencesType) {
                             is PrefsEntityDefinition.PreferencesType.Default -> {
                                 addStatement(
-                                    "this.preferences = \$T.getDefaultSharedPreferences(context.getApplicationContext())",
+                                    "result = \$T.getDefaultSharedPreferences(context)",
                                     Types.preferenceManager
                                 )
                             }
                             is PrefsEntityDefinition.PreferencesType.Named -> {
                                 addStatement(
-                                    "this.preferences = context.getApplicationContext().getSharedPreferences(\$S, \$T.MODE_PRIVATE)",
+                                    "result = context.getSharedPreferences(\$S, \$T.MODE_PRIVATE)",
                                     preferencesType.name,
                                     Types.androidContext
                                 )
                             }
                         }
-
-                        entityDefinition.typeAdapter?.takeIf { it.isInstanceRequired }?.let {
-                            addStatement("this.typeAdapter = typeAdapter")
-                        }
+                        beginControlFlow("if(!preferences.compareAndSet(null, result))")
+                            .addStatement("return preferences.get()")
+                            .endControlFlow()
                     }
+                    .endControlFlow()
+                    .addStatement("return result")
                     .build()
             )
             .build()

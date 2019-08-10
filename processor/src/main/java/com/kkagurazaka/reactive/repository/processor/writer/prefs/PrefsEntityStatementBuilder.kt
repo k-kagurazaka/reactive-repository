@@ -11,11 +11,16 @@ object PrefsEntityStatementBuilder {
     fun buildGetStatement(entityDefinition: PrefsEntityDefinition): CodeBlock =
         CodeBlock.builder()
             .apply {
-                val isTypeAdapterInstanceRequired = entityDefinition.typeAdapter?.isInstanceRequired ?: false
+                val isTypeAdapterInstanceRequired =
+                    entityDefinition.typeAdapter?.isInstanceRequired ?: false
 
                 when (val accessorType = entityDefinition.accessorType) {
                     is PrefsEntityDefinition.AccessorType.Fields -> {
-                        addStatement("\$T value = new \$T()", entityDefinition.className, entityDefinition.className)
+                        addStatement(
+                            "\$T value = new \$T()",
+                            entityDefinition.className,
+                            entityDefinition.className
+                        )
                         accessorType.fields.forEach { def ->
                             val adapterMethod = def.type.typeAdapterMethod
 
@@ -25,7 +30,11 @@ object PrefsEntityStatementBuilder {
                                 .wrapByToPrefs(adapterMethod, isTypeAdapterInstanceRequired)
 
                             val getCode = CodeBlock.builder()
-                                .add("preferences.\$L(\$S, ", def.type.prefsType.toGetMethod(), def.key)
+                                .add(
+                                    "getPreferences().\$L(\$S, ",
+                                    def.type.prefsType.toGetMethod(),
+                                    def.key
+                                )
                                 .add(getDefaultCode)
                                 .add(")")
                                 .build()
@@ -53,14 +62,24 @@ object PrefsEntityStatementBuilder {
                                         val getDefaultCode = CodeBlock.builder()
                                             .add("defaultValue.\$L()", def.name)
                                             .build()
-                                            .wrapByToPrefs(adapterMethod, isTypeAdapterInstanceRequired)
+                                            .wrapByToPrefs(
+                                                adapterMethod,
+                                                isTypeAdapterInstanceRequired
+                                            )
 
                                         val getCode = CodeBlock.builder()
-                                            .add("preferences.\$L(\$S, ", def.type.prefsType.toGetMethod(), def.key)
+                                            .add(
+                                                "getPreferences().\$L(\$S, ",
+                                                def.type.prefsType.toGetMethod(),
+                                                def.key
+                                            )
                                             .add(getDefaultCode)
                                             .add(")")
                                             .build()
-                                            .wrapByToType(adapterMethod, isTypeAdapterInstanceRequired)
+                                            .wrapByToType(
+                                                adapterMethod,
+                                                isTypeAdapterInstanceRequired
+                                            )
 
                                         add(getCode)
 
@@ -75,30 +94,39 @@ object PrefsEntityStatementBuilder {
                         )
                     }
                     is PrefsEntityDefinition.AccessorType.GettersAndSetters -> {
-                        addStatement("\$T value = new \$T()", entityDefinition.className, entityDefinition.className)
-                        accessorType.getters.zip(accessorType.setters).forEach { (getterDef, setterDef) ->
-                            val adapterMethod = getterDef.type.typeAdapterMethod
+                        addStatement(
+                            "\$T value = new \$T()",
+                            entityDefinition.className,
+                            entityDefinition.className
+                        )
+                        accessorType.getters.zip(accessorType.setters)
+                            .forEach { (getterDef, setterDef) ->
+                                val adapterMethod = getterDef.type.typeAdapterMethod
 
-                            val getDefaultCode = CodeBlock.builder()
-                                .add("defaultValue.\$L()", getterDef.name)
-                                .build()
-                                .wrapByToPrefs(adapterMethod, isTypeAdapterInstanceRequired)
+                                val getDefaultCode = CodeBlock.builder()
+                                    .add("defaultValue.\$L()", getterDef.name)
+                                    .build()
+                                    .wrapByToPrefs(adapterMethod, isTypeAdapterInstanceRequired)
 
-                            val getCode = CodeBlock.builder()
-                                .add("preferences.\$L(\$S, ", getterDef.type.prefsType.toGetMethod(), getterDef.key)
-                                .add(getDefaultCode)
-                                .add(")")
-                                .build()
-                                .wrapByToType(adapterMethod, isTypeAdapterInstanceRequired)
+                                val getCode = CodeBlock.builder()
+                                    .add(
+                                        "getPreferences().\$L(\$S, ",
+                                        getterDef.type.prefsType.toGetMethod(),
+                                        getterDef.key
+                                    )
+                                    .add(getDefaultCode)
+                                    .add(")")
+                                    .build()
+                                    .wrapByToType(adapterMethod, isTypeAdapterInstanceRequired)
 
-                            val setCode = CodeBlock.builder()
-                                .add("value.\$L(", setterDef.name)
-                                .add(getCode)
-                                .add(")")
-                                .build()
+                                val setCode = CodeBlock.builder()
+                                    .add("value.\$L(", setterDef.name)
+                                    .add(getCode)
+                                    .add(")")
+                                    .build()
 
-                            addStatement(setCode)
-                        }
+                                addStatement(setCode)
+                            }
                         addStatement("return value")
                     }
                 }
@@ -114,7 +142,7 @@ object PrefsEntityStatementBuilder {
         CodeBlock.builder()
             .addStatement(
                 CodeBlock.builder()
-                    .add("preferences.edit()")
+                    .add("getPreferences().edit()")
                     .apply {
                         when (accessorType) {
                             is PrefsEntityDefinition.AccessorType.Fields -> {
@@ -161,11 +189,14 @@ object PrefsEntityStatementBuilder {
             )
             .build()
 
-    fun buildClearStatement(accessorType: PrefsEntityDefinition.AccessorType, commitOnSave: Boolean): CodeBlock =
+    fun buildClearStatement(
+        accessorType: PrefsEntityDefinition.AccessorType,
+        commitOnSave: Boolean
+    ): CodeBlock =
         CodeBlock.builder()
             .addStatement(
                 CodeBlock.builder()
-                    .add("preferences.edit()")
+                    .add("getPreferences().edit()")
                     .apply {
                         when (accessorType) {
                             is PrefsEntityDefinition.AccessorType.Fields -> {
@@ -204,7 +235,11 @@ object PrefsEntityStatementBuilder {
                     .build()
             } else {
                 CodeBlock.builder()
-                    .add("\$T.\$L(", adapterMethod.className, adapterMethod.toTypeMethod.simpleName.toString())
+                    .add(
+                        "\$T.\$L(",
+                        adapterMethod.className,
+                        adapterMethod.toTypeMethod.simpleName.toString()
+                    )
                     .add(this)
                     .add(")")
                     .build()
@@ -226,7 +261,11 @@ object PrefsEntityStatementBuilder {
                     .build()
             } else {
                 CodeBlock.builder()
-                    .add("\$T.\$L(", adapterMethod.className, adapterMethod.toPrefsMethod.simpleName.toString())
+                    .add(
+                        "\$T.\$L(",
+                        adapterMethod.className,
+                        adapterMethod.toPrefsMethod.simpleName.toString()
+                    )
                     .add(this)
                     .add(")")
                     .build()

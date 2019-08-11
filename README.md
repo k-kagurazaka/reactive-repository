@@ -83,7 +83,7 @@ Reactive Repository supports following methods for code generation;
 -------------|------------------------------------------------------------
 | getter     | method taking no parameter and returning the entity class |
 | setter     | method taking the entity class as the only one parameter and returning void |
-| observable | method taking no parameter and returning RxJava 2 Observable or Flowable of the entity class |
+| observable | method taking no parameter and returning RxJava2 Observable or Flowable of the entity class |
 
 
 ## Kotlin data class support
@@ -99,6 +99,54 @@ data class RealdFlags(
 
 Note that `@PrefsKey` must be set to getter by `@get:PrefsKey`.
 
+## Commit to SharedPreferences
+
+Generated `@PrefsRepository` calls `SharedPreferences.Editor#apply()` to store an entity as default.
+You can use `@PrefsEntity(commitOnSave = true)` to use `commit()` instead of `apply()`.
+
+## Use types which is not supported by SharedPreferences
+
+You can define `@PrefsTypeAdapter` to use types which is not supported by SharedPreferences.
+
+```java
+public class Person {
+    public String name;
+}
+
+@PrefsEntity(typeAdapter = PersonPairTypeAdapter.class)
+public class PersonPair {
+    @PrefsKey
+    public Person person1;
+    @PrefsKey
+    public Person person2;
+}
+
+@PrefsTypeAdapter
+public class PersonPairTypeAdapter {
+    public static Person convert(String value) {
+        return new Person(value);
+    }
+
+    public static String convert(Person value) {
+        return value.name;
+    }
+}
+
+@PrefsRepository(PersonPair.class)
+public interface PersonPairRepository {
+    @NonNull
+    PersonPair get();
+
+    void save(@Nullable PersonPair personPair);
+
+    @NonNull
+    Observable<PersonPair> observe();
+}
+```
+
+Converter method of `@PrefsTypeAdapter` can be non-static.
+In the case, generated repository class requires `@PrefsTypeAdapter` instance at constructor.
+
 ## Limitation
 
 Reactive Repository requires some limitations for entity / repository definitions.
@@ -107,12 +155,12 @@ If you violate a following limitation, annotation processing will be failed.
 ### Both of `@InMemoryRepository` and `@PrefsRepository`
 
 - Getter and setter can be defined only once
-- `@Nullable` setter cannot be defined with RxJava 2 integration since all streams of RxJava 2 never accept `null` value
+- `@Nullable` setter cannot be defined with RxJava2 integration since all streams of RxJava2 never accept `null` value
 
 ### `@InMemoryRepository`
 
 - `@Nullable` getter can be defined only if the entity class has a constructor with no parameters
-- `@NonNull` getter and `@Nullable` setter cannot be defined togeter
+- `@NonNull` getter and `@Nullable` setter cannot be defined together
 
 ### `@PrefsEntity`
 
